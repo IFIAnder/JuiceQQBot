@@ -1,0 +1,157 @@
+
+整合包=>QQBotSendMsg
+
+/* 群聊被动消息
+* 群号 消息 消息ID
+*/
+[函数]群单发 .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=0
+    msg_seq:=%随机数5-100%
+    content=%发送文本%
+    msg_id=%参数3%
+<JSON
+$访问POST %apiUrl%/v2/groups/%参数1%/messages %消息% %token%$
+
+/* 群聊被动ARK消息
+* 群号 消息 消息ID
+*/
+[函数]群单发ARK .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+空格::a
+JSON>消息={}
+    msg_type:=3
+    msg_seq:=%随机数5-100%
+    ark:=%参数2%
+    msg_id=%参数3%
+    content=%空格%
+<JSON
+$打印 %消息%$
+$访问POST %apiUrl%/v2/groups/%参数1%/messages %消息% %token%$
+
+/* 群聊被动Markdown消息
+* 群号 消息 消息ID
+*/
+[函数]群单发MD .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+空格::a
+JSON>消息={}
+    msg_type:=3
+    msg_seq:=%随机数5-100%
+    markdown:=%参数2%
+    msg_id=%参数3%
+    content=%空格%
+<JSON
+$打印 %消息%$
+$访问POST %apiUrl%/v2/groups/%参数1%/messages %消息% %token%$
+
+/* 群聊主动消息
+* 群号 消息
+*/
+[函数]群单发 .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=0
+    msg_seq:=%随机数5-100%
+    content=%发送文本%
+<JSON
+$访问POST %apiUrl%/v2/groups/%参数1%/messages %消息% %token%$
+
+
+/* 群私聊被动消息
+* ID 消息 消息ID
+*/
+[函数]群私聊 .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=0
+    msg_seq:=%随机数5-100%
+    content=%发送文本%
+    msg_id=%参数3%
+<JSON
+$访问POST %apiUrl%/v2/users/%参数1%/messages %消息% %token%$
+
+/* 群私聊主动消息
+* ID 消息
+*/
+[函数]群私聊 .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=0
+    msg_seq:=%随机数5-100%
+    content=%发送文本%
+<JSON
+$访问POST %apiUrl%/v2/users/%参数1%/messages %消息% %token%$
+
+/* 群富文本
+* 群号 类型 文件数据
+*/
+[函数]群富文本 .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+文件数据:$B64编码 %参数3%$
+JSON>消息={}
+    file_type:=%参数2%
+    srv_send_msg:=false
+    file_data=%文件数据%
+<JSON
+$访问POST %apiUrl%/v2/groups/%参数1%/files %消息% %token%$
+
+/* 被动群富文本消息
+* 群号 消息 消息ID 类型 文件数据
+*/
+[函数]被动群富文本消息 .* .* .* .* .*
+fileinfo:$.自己 群富文本 %参数1% %参数4% %参数5%$->file_info
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=7
+    content=%发送文本%
+    media->file_info=%fileinfo%
+    msg_id=%参数3%
+<JSON
+$访问POST %apiUrl%/v2/groups/%参数1%/messages %消息% %token%$
+
+/* 群私聊富文本
+* ID 类型 文件数据
+*/
+[函数]群私聊富文本 .* .* .*
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+文件数据:$B64编码 %参数3%$
+JSON>消息={}
+    file_type:=%参数2%
+    srv_send_msg:=false
+    file_data=%文件数据%
+<JSON
+$访问POST %apiUrl%/v2/users/%参数1%/files %消息% %token%$
+
+/* 被动群私聊富文本消息
+* ID 消息 消息ID 类型 文件数据
+*/
+[函数]被动群私聊富文本消息 .* .* .* .* .*
+fileinfo:$.自己 群私聊富文本 %参数1% %参数4% %参数5%$->file_info
+token:$.QQBot 获取Token$
+apiUrl:$%QQBot apiUrl$
+发送文本:$替换 %参数2% \r %val5%$
+JSON>消息={}
+    msg_type:=7
+    content=%发送文本%
+    media->file_info=%fileinfo%
+    msg_id=%参数3%
+<JSON
+$访问POST %apiUrl%/v2/users/%参数1%/messages %消息% %token%$
+
+<=整合包

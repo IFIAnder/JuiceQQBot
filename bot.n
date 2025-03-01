@@ -1,0 +1,238 @@
+
+整合包=>QQBot
+
+[函数]执行 .* .* .*
+$%自己 执行词库目录 %参数1%$
+Url:api.sgroup.qq.com
+$%自己 apiUrl https://%Url%$
+wsUrl:wss://%Url%/websocket
+JSON>启动key={}
+    appId=%参数2%
+    clientSecret=%参数3%
+<JSON
+$%自己 启动key %启动key%$
+启动>
+API头部:$.自己 获取Token$
+$.自己 连接 %wsUrl%$
+$.自己 启动$
+
+[函数]启动
+token:$.自己 获取Token$!->Authorization
+群聊:$计算 1 << 25$
+频道:$计算 1 << 30$
+频道私聊:$计算 1 << 12$
+消息审核:$计算 1 << 27$
+监听:$计算 %群聊% | %频道%$
+监听:$计算 %监听% | %消息审核%$
+监听:$计算 %监听% | %频道私聊%$
+文本>鉴权=
+{
+  "op": 2,
+  "d": {
+    "token": "%token%",
+    "intents": %监听%,
+    "shard": [0, 1],
+    "properties": {
+      "$os": "windows"
+    }
+  }
+}
+<文本
+鉴权>
+$WS发送 bot %鉴权%$
+$.自己 心跳 null$
+函数>心跳线程
+    $.自己 心跳线程$
+<函数
+心跳
+$异步函数 心跳线程$
+
+[函数]重连
+token:$.自己 获取Token$!->Authorization
+群聊:$计算 1 << 25$
+频道:$计算 1 << 30$
+频道私聊:$计算 1 << 12$
+消息审核:$计算 1 << 27$
+监听:$计算 %群聊% | %频道%$
+监听:$计算 %监听% | %消息审核%$
+监听:$计算 %监听% | %频道私聊%$
+文本>鉴权=
+{
+  "op": 2,
+  "d": {
+    "token": "%token%",
+    "intents": %监听%,
+    "shard": [0, 1],
+    "properties": {
+      "$os": "windows"
+    }
+  }
+}
+<文本
+鉴权>
+$WS发送 bot %鉴权%$
+
+[函数]连接 .*
+URL:%参数1%
+// $打印 URL:%URL%$
+函数>延迟重连
+    $延迟 [1000*3]$
+    $.自己 重连$
+<函数
+函数>WS
+    数据:%触发词%
+    触发数据:$JSON解析 %数据% d$
+    // $打印 %触发词%$
+    数据来源:%触发词%!->op
+    触发事件:%触发词%!->t
+    函数>解决事件
+        事件:%触发词%
+        执行词库目录:$%自己 执行词库目录$
+        dicPath:bot/%执行词库目录%/dic.n
+        如果>%事件%==READY
+            机器人昵称:%触发数据%!->user->username
+            机器人ID:%触发数据%!->user->id
+            $%自己 机器人昵称 %机器人昵称%$
+            $%自己 机器人ID %机器人ID%$
+            $打印 机器人上线：%机器人昵称%<@!%机器人ID%>$
+            // 生成默认词库
+            如果>$存在文件 private/%dicPath%$==false
+                文本>默认词库=%val5%
+                    打招呼:你好啊！%val5%
+                    (#私聊#)?你好
+                    %打招呼%
+                <文本
+                $写文件 private/%dicPath% %默认词库%$
+                $打印 生成默认词库成功$
+            <如果
+        >否则如果:%事件%==GROUP_AT_MESSAGE_CREATE
+            $打印 群聊艾特$
+            如果>$判断空值 %触发数据%$
+                >终止
+            <如果
+            消息类型:群聊
+            替换多余文本::^ |^ ?<@!\d+>
+            触发文本:%触发数据%!->content
+            触发文本:$正则替换 %触发文本% %替换多余文本%$
+            ID:%触发数据%!->author->member_openid
+            群号:%触发数据%!->group_openid
+            文件列表:%触发数据%!->attachments
+            消息ID:%触发数据%!->id
+            机器人昵称:$%自己 机器人昵称$
+            机器人ID:$%自己 机器人ID$
+            $锁变量 ID,群号,文件列表,消息ID,机器人昵称,机器人ID,消息类型$
+            // 初始化功能变量
+            发送图片:null
+            ARK:null
+            MARKDOWN:null
+            // 词库操作
+            词库文本:$:$读文件 private/%dicPath%$
+            返回文本:$:$执行词库 %词库文本% %触发文本% 互通$
+            如果>$判断空值 %ARK%$==false
+                $.QQBotSendMsg 群单发ARK %群号% %ARK% %消息ID%$
+            <如果
+            如果>$判断空值 %MARKDOWN%$==false
+                $.QQBotSendMsg 群单发MD %群号% %MARKDOWN% %消息ID%$
+            <如果
+            如果>$判断空值 %发送图片%$==false
+                $.QQBotSendMsg 被动群富文本消息 %群号% %返回文本% %消息ID% 1 %发送图片%$
+            >否则
+                如果:$判断空值 %返回文本%$==false
+                    $.QQBotSendMsg 群单发 %群号% %返回文本% %消息ID%$
+            <如果
+        >否则如果:%事件%==AT_MESSAGE_CREATE
+            $打印 频道艾特$
+        >否则如果:%事件%==C2C_MESSAGE_CREATE
+            $打印 群聊私聊触发$
+            如果>$判断空值 %触发数据%$
+                >终止
+            <如果
+            消息类型:群私聊
+            触发文本:%触发数据%!->content
+            ID:%触发数据%!->author->user_openid
+            文件列表:%触发数据%!->attachments
+            消息ID:%触发数据%!->id
+            机器人昵称:$%自己 机器人昵称$
+            机器人ID:$%自己 机器人ID$
+            $锁变量 ID,群号,文件列表,消息ID,机器人昵称,机器人ID,消息类型$
+            // 初始化功能变量
+            发送图片:null
+            ARK:null
+            MARKDOWN:null
+            // 词库操作
+            词库文本:$:$读文件 private/%dicPath%$
+            返回文本:$:$执行词库 %词库文本% #私聊#%触发文本% 互通$
+            如果>$判断空值 %发送图片%$==false
+                $.QQBotSendMsg 被动群私聊富文本消息 %ID% %返回文本% %消息ID% 1 %发送图片%$
+            >否则
+                如果:$判断空值 %返回文本%$==false
+                    $.QQBotSendMsg 群私聊 %ID% %返回文本% %消息ID%$
+            <如果
+        >否则如果:%事件%==DIRECT_MESSAGE_CREATE
+            $打印 频道私聊触发$
+        <如果
+    <函数
+    如果>%数据来源%==0
+        $函数 解决事件 %触发事件%$
+    <如果
+<函数
+函数>QQBot连接
+    循环>i
+        终止返回:$WS连接 bot %URL% WS$
+        如果>%报错%!=null
+            $打印 错误:%报错%$
+            $打印 原因:%终止返回%$
+            不稳定网络::read tcp 192.168.3.183:[0-9]+->120.241.139.72:443: wsarecv: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+            如果>$正则匹配 %不稳定网络% %报错%$
+                $打印 网络不稳定$
+                #:$WS连接断开 bot$
+                $打印 断开重连%i%次$
+                $异步函数 延迟重连$
+            >否则如果:%报错%==websocket: close 1006 (abnormal closure): unexpected EOF
+                $打印 连接超时请检查网络$
+                #:$WS连接断开 bot$
+                $打印 终止重连$
+                >终止
+            >否则如果:%报错%==websocket: close 4009: Session timed out
+                $打印 开始重连$
+                #:$WS连接断开 bot$
+                $打印 断开重连%i%次$
+                $异步函数 延迟重连$
+            >否则
+                #:$WS连接断开 bot$
+                $打印 终止重连$
+                >终止
+            <如果
+        >否则
+            #:$WS连接断开 bot$
+            $打印 断开重连%i%次$
+            $异步函数 延迟重连$
+        <如果
+    <循环
+<函数
+$异步函数 QQBot连接$
+$延迟 [1000*1]$
+
+[函数]心跳线程
+$延迟 41250$
+$.自己 心跳 251$
+$.自己 心跳线程$
+
+[函数]心跳 (null|251)
+文本>Ack=
+{
+  "op": 1,
+  "d": %括号1%
+}
+<文本
+a:$WS发送 bot %Ack%$
+$打印 %a%$
+
+[函数]获取Token
+启动key:$%自己 启动key$
+token:$访问POST https://bots.qq.com/app/getAppAccessToken %启动key%$!->access_token
+JSON>{}
+    Authorization=QQBot %token%
+<JSON
+
+<=整合包
